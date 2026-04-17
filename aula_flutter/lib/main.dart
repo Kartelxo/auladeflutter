@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'homescreen.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -10,9 +11,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Split Bill',
       debugShowCheckedModeBanner: false,
-      theme:ThemeData(primarySwatch: Colors.green),
-      home: HomeScreen(),
+      theme: ThemeData(primarySwatch: Colors.green),
+      home: const HomeScreen(),
     );
   }
 }

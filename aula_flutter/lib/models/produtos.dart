@@ -1,13 +1,25 @@
 import 'pessoas.dart';
+
+enum SplitMode { perUnit, equal }
+
 class Item {
-  final String id;
-  String nome;
-  double preco;
-  final List<Person> consumers;
+  String name;
+  double price;
+  int quantity;
+
+  // 🔥 consumo por pessoa (quantas unidades)
+  Map<Person, int> consumption;
+
+  // pessoas que partilham no modo equal
+  List<Person> sharedBy;
+
+  SplitMode splitMode;
 
   Item({
-    required this.id,
-    required this.nome,
-    required this.preco,
-    required this.consumers});
+    required this.name,
+    required this.price,
+    required this.quantity,
+  })  : consumption = {},
+        sharedBy = [],
+        splitMode = SplitMode.perUnit;
 }
