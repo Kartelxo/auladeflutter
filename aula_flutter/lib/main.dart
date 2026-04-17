@@ -12,7 +12,8 @@ class My app extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: PeoplePage(),
+      theme:ThemeData(primarySwatch: Colors.green)
+      home: HomePage(),
     );
   }
 }
