@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'app.dart';
-
 void main() {
   runApp(const MyApp());
 }
 
-class My app extends StatelessWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
