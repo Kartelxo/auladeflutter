@@ -44,36 +44,72 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 🧾 ADD PRODUTO + TOAST
   void addItem() {
-    if (itemController.text.isEmpty) return;
+  String name = itemController.text.trim();
+  String priceText = priceController.text.trim();
+  String qtyText = qtyController.text.trim();
 
-    setState(() {
-      items.add(Item(
-        name: itemController.text,
-        price: double.parse(priceController.text),
-        quantity: int.parse(qtyController.text),
-      ));
-    });
-
+  /// CAMPOS VAZIOS
+  if (name.isEmpty || priceText.isEmpty || qtyText.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Produto adicionado: ${itemController.text}"),
-        duration: const Duration(seconds: 2),
-      ),
+      const SnackBar(content: Text("Preenche todos os campos do produto")),
     );
-
-    itemController.clear();
-    priceController.clear();
-    qtyController.clear();
+    return;
   }
+
+  double? price = double.tryParse(priceText);
+  int? qty = int.tryParse(qtyText);
+
+  /// VALORES INVÁLIDOS
+  if (price == null || qty == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Preço ou quantidade inválidos")),
+    );
+    return;
+  }
+
+  /// NEGATIVOS OU ZERO
+  if (price <= 0 || qty <= 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Preço e quantidade devem ser > 0")),
+    );
+    return;
+  }
+
+  setState(() {
+    items.add(Item(name: name, price: price, quantity: qty));
+  });
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("Produto adicionado: $name")),
+  );
+
+  itemController.clear();
+  priceController.clear();
+  qtyController.clear();
+}
 
   void goAssign() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AssignScreen(people: people, items: items),
-      ),
+  if (people.length < 2) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Adiciona pelo menos 2 participantes")),
     );
+    return;
   }
+
+  if (items.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Adiciona pelo menos 1 produto")),
+    );
+    return;
+  }
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => AssignScreen(people: people, items: items),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       /// 🔥 BOTÃO FIXO EM BAIXO
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         child: ElevatedButton.icon(
           onPressed: goAssign,
           icon: const Icon(Icons.assignment),
