@@ -11,7 +11,7 @@ import 'package:aula_flutter/main.dart';
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
   // Build our app and trigger a frame.
-  await tester.pumpWidget(const MyApp());
+  await tester.pumpWidget(const SplitBillApp());
 
   // Verify that the home page shows the expected title and widgets
   expect(find.text('Lista de Pessoas'), findsOneWidget);

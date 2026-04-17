@@ -1,19 +1,45 @@
 import 'package:flutter/material.dart';
-import 'homescreen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const SplitBillApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SplitBillApp extends StatelessWidget {
+  const SplitBillApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final base = ThemeData.light();
     return MaterialApp(
-      title: 'Split Bill',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.green),
+      title: 'Split Bill',
+      theme: base.copyWith(
+        colorScheme: base.colorScheme.copyWith(primary: Colors.indigo),
+        primaryColor: Colors.indigo,
+        scaffoldBackgroundColor: Colors.grey[50],
+        appBarTheme: const AppBarTheme(
+          elevation: 2,
+          centerTitle: true,
+        ),
+        // cardTheme: CardTheme(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        textTheme: base.textTheme.copyWith(
+          titleLarge: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+      ),
       home: const HomeScreen(),
     );
   }

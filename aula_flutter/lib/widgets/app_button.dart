@@ -16,15 +16,17 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 55,
-      child: ElevatedButton.icon(
-        icon: icon != null ? Icon(icon) : const SizedBox(),
-        label: Text(
-          text,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        onPressed: onPressed,
-      ),
+      height: 50,
+      child: icon != null
+          ? ElevatedButton.icon(
+              icon: Icon(icon, size: 20),
+              label: Text(text),
+              onPressed: onPressed,
+            )
+          : ElevatedButton(
+              onPressed: onPressed,
+              child: Text(text),
+            ),
     );
   }
 }
