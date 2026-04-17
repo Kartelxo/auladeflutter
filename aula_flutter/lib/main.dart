@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/home_screen.dart';
 
 void main() {
-  runApp(const SplitBillApp());
+  runApp(const ProviderScope(child: SplitBillApp()));
 }
 
 class SplitBillApp extends StatelessWidget {
@@ -22,7 +23,6 @@ class SplitBillApp extends StatelessWidget {
           elevation: 2,
           centerTitle: true,
         ),
-        // cardTheme: CardTheme(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

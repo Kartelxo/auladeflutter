@@ -1,72 +1,58 @@
 import 'package:flutter/material.dart';
-import '../models/person.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../state/providers.dart';
 import '../models/product.dart';
 
-class ResultScreen extends StatelessWidget {
-  final List<Person> people;
-  final List<Product> products;
-  final Map<String, Map<String, bool>> selected;
-  final Map<String, Map<String, int>>? units;
-  final Map<String, bool>? splitEquallyByProduct;
+class ResultScreen extends ConsumerWidget {
+  const ResultScreen({super.key});
 
-  const ResultScreen({
-    super.key,
-    required this.people,
-    required this.products,
-    required this.selected,
-    this.units,
-    this.splitEquallyByProduct,
-  });
+  double _personShareForProduct({
+    required Map<String, Map<String, bool>> selected,
+    required Map<String, Map<String, int>> units,
+    required Map<String, bool> divideFlags,
+    required Map<String, bool> useUnitsFlags,
+    required List<String> peopleIds,
+    required String personId,
+    required Product product,
+  }) {
+    final productTotal = product.price * product.quantity;
 
-  double getPersonTotal(Person person) {
-    // Se para este produto foi selecionado dividir igualmente, divide este produto pelo número de pessoas
+    // if divide not enabled, skip
+    if (!(divideFlags[product.name] ?? false)) return 0;
 
-    double total = 0;
-
-    for (var product in products) {
-      final productTotal = product.price * product.quantity;
-
-      // Se para este produto está marcado dividir igualmente, aplica divisão direta
-      if (splitEquallyByProduct?[product.name] ?? false) {
-        total += productTotal / (people.isEmpty ? 1 : people.length);
-        continue;
+    // units mode
+    if ((useUnitsFlags[product.name] ?? false)) {
+      final prodUnits = units[product.name] ?? {};
+      final totalUnits = prodUnits.values.fold<int>(0, (a, b) => a + b);
+      if (totalUnits > 0) {
+        final personUnits = prodUnits[personId] ?? 0;
+        return productTotal * (personUnits / totalUnits);
       }
-
-      // Se existem unidades atribuídas para este produto, usar essa distribuição
-      final productUnits = units?[product.name];
-      if (productUnits != null) {
-        final totalUnits = productUnits.values.fold<int>(0, (a, b) => a + b);
-        if (totalUnits > 0) {
-          final personUnits = productUnits[person.id] ?? 0;
-          total += productTotal * (personUnits / totalUnits);
-          continue;
-        }
-      }
-
-      // Caso contrário, usar seleção booleana (checkboxes)
-      final selectedPeople = selected[product.name]!
-          .entries
-          .where((e) => e.value)
-          .map((e) => e.key)
-          .toList();
-
-      if (selectedPeople.isEmpty) continue;
-
-      if (selectedPeople.contains(person.id)) {
-        total += productTotal / selectedPeople.length;
-      }
+      return 0;
     }
 
-    return total;
+    // selection mode
+    final selectedPeople = (selected[product.name] ?? {}).entries.where((e) => e.value).map((e) => e.key).toList();
+    if (selectedPeople.isEmpty) return 0;
+    if (selectedPeople.contains(personId)) {
+      return productTotal / selectedPeople.length;
+    }
+
+    return 0;
   }
 
   @override
-  Widget build(BuildContext context) {
-    final overallTotal = products.fold<double>(0, (sum, prod) => sum + prod.price * prod.quantity);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final people = ref.watch(peopleProvider);
+    final products = ref.watch(productsProvider);
+    final selected = ref.watch(selectedProvider);
+    final units = ref.watch(unitsProvider);
+    final divideFlags = ref.watch(divideEnabledProvider);
+    final useUnitsFlags = ref.watch(useUnitsProvider);
+    final overallTotal = ref.watch(overallTotalProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text("Resultado")),
-
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -98,7 +84,16 @@ class ResultScreen extends StatelessWidget {
 
           // Individual totals per person
           ...people.map((p) {
-            final total = getPersonTotal(p);
+            final total = products.fold<double>(0, (sum, product) => sum + _personShareForProduct(
+              selected: selected,
+              units: units,
+              divideFlags: divideFlags,
+              useUnitsFlags: useUnitsFlags,
+              peopleIds: people.map((e) => e.id).toList(),
+              personId: p.id,
+              product: product,
+            ));
+
             return Card(
               child: ExpansionTile(
                 leading: CircleAvatar(
@@ -113,21 +108,15 @@ class ResultScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: products.map((product) {
-                        final productTotal = product.price * product.quantity;
-                        // compute share for this person for this product
-                        double share = 0;
-                        final prodUnits = units?[product.name];
-                        if (prodUnits != null) {
-                          final totalUnits = prodUnits.values.fold<int>(0, (a, b) => a + b);
-                          if (totalUnits > 0) {
-                            share = productTotal * ((prodUnits[p.id] ?? 0) / totalUnits);
-                          }
-                        }
-
-                        final selectedPeople = selected[product.name]!.entries.where((e) => e.value).map((e) => e.key).toList();
-                        if (selectedPeople.isNotEmpty && share == 0) {
-                          if (selectedPeople.contains(p.id)) share = productTotal / selectedPeople.length;
-                        }
+                        final share = _personShareForProduct(
+                          selected: selected,
+                          units: units,
+                          divideFlags: divideFlags,
+                          useUnitsFlags: useUnitsFlags,
+                          peopleIds: people.map((e) => e.id).toList(),
+                          personId: p.id,
+                          product: product,
+                        );
 
                         if (share <= 0) return const SizedBox.shrink();
 
@@ -147,7 +136,7 @@ class ResultScreen extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

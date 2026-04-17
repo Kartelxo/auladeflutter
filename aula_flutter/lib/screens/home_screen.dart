@@ -1,99 +1,94 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/person.dart';
 import '../models/product.dart';
+import '../state/providers.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_textfield.dart';
 import '../widgets/section_card.dart';
 import '../widgets/toast_helper.dart';
 import 'assign_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  List<Person> people = [];
-  List<Product> products = [];
-
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final nameC = TextEditingController();
   final prodC = TextEditingController();
   final priceC = TextEditingController();
   final qtyC = TextEditingController();
 
   void addPerson() {
-  final name = nameC.text.trim();
+    final name = nameC.text.trim();
 
-  if (name.isEmpty) {
-    ToastHelper.show(context, "Nome inválido");
-    return;
+    if (name.isEmpty) {
+      ToastHelper.show(context, "Nome inválido");
+      return;
+    }
+
+    final p = Person(id: DateTime.now().toString(), name: name);
+    ref.read(peopleProvider.notifier).add(p);
+
+    nameC.clear();
+    ToastHelper.show(context, "Pessoa adicionada");
   }
-
-  people.add(
-    Person(id: DateTime.now().toString(), name: name),
-  );
-
-  nameC.clear();
-
-  setState(() {});
-  ToastHelper.show(context, "Pessoa adicionada");
-}
 
   void addProduct() {
-  final name = prodC.text.trim();
-  final price = double.tryParse(priceC.text);
-  final qty = int.tryParse(qtyC.text);
+    final name = prodC.text.trim();
+    final price = double.tryParse(priceC.text);
+    final qty = int.tryParse(qtyC.text);
 
-  if (name.isEmpty || price == null || qty == null) {
-    ToastHelper.show(context, "Campos inválidos");
-    return;
+    if (name.isEmpty || price == null || qty == null) {
+      ToastHelper.show(context, "Campos inválidos");
+      return;
+    }
+
+    if (price <= 0 || qty <= 0) {
+      ToastHelper.show(context, "Preço e quantidade devem ser > 0");
+      return;
+    }
+
+    final prod = Product(name: name, price: price, quantity: qty);
+    ref.read(productsProvider.notifier).add(prod);
+
+    prodC.clear();
+    priceC.clear();
+    qtyC.clear();
+
+    ToastHelper.show(context, "Produto adicionado");
   }
-
-  if (price <= 0 || qty <= 0) {
-    ToastHelper.show(context, "Preço e quantidade devem ser > 0");
-    return;
-  }
-
-  products.add(Product(
-    name: name,
-    price: price,
-    quantity: qty,
-  ));
-
-  prodC.clear();
-  priceC.clear();
-  qtyC.clear();
-
-  setState(() {});
-  ToastHelper.show(context, "Produto adicionado");
-}
 
   void go() {
-  if (people.length < 2) {
-    ToastHelper.show(context, "Precisas de pelo menos 2 pessoas");
-    return;
-  }
+    final people = ref.read(peopleProvider);
+    final products = ref.read(productsProvider);
 
-  if (products.isEmpty) {
-    ToastHelper.show(context, "Precisas de pelo menos 1 produto");
-    return;
-  }
+    if (people.length < 2) {
+      ToastHelper.show(context, "Precisas de pelo menos 2 pessoas");
+      return;
+    }
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => AssignScreen(
-        people: people,
-        products: products,
+    if (products.isEmpty) {
+      ToastHelper.show(context, "Precisas de pelo menos 1 produto");
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AssignScreen(),
       ),
-    ),
-  );
-}
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final people = ref.watch(peopleProvider);
+    final products = ref.watch(productsProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text("Split Bill")),
 

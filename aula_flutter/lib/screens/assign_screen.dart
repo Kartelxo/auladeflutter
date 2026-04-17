@@ -1,73 +1,61 @@
 import 'package:flutter/material.dart';
-import '../models/person.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/product.dart';
+import '../state/providers.dart';
 import 'result_screen.dart';
 
-class AssignScreen extends StatefulWidget {
-  final List<Person> people;
-  final List<Product> products;
-
-  const AssignScreen({
-    super.key,
-    required this.people,
-    required this.products,
-  });
+class AssignScreen extends ConsumerStatefulWidget {
+  const AssignScreen({super.key});
 
   @override
-  State<AssignScreen> createState() => _AssignScreenState();
+  ConsumerState<AssignScreen> createState() => _AssignScreenState();
 }
 
-class _AssignScreenState extends State<AssignScreen> {
-  Map<String, Map<String, bool>> selected = {};
-  // unidades atribuídas por produto -> pessoaId -> unidades
-  Map<String, Map<String, int>> units = {};
-
-  // controlo por produto: se a divisão está ativada e se o modo é por unidades
-  final Map<String, bool> divideEnabled = {};
-  final Map<String, bool> useUnits = {};
-
+class _AssignScreenState extends ConsumerState<AssignScreen> {
   @override
   void initState() {
     super.initState();
-
-    for (var p in widget.products) {
-      selected[p.name] = {};
-      units[p.name] = {};
-  divideEnabled[p.name] = false;
-  useUnits[p.name] = false;
-      for (var person in widget.people) {
-        selected[p.name]![person.id] = false;
-        units[p.name]![person.id] = 0;
-      }
+    // initialize providers for current products & people
+    final people = ref.read(peopleProvider);
+    final products = ref.read(productsProvider);
+    for (var p in products) {
+      ref.read(selectedProvider.notifier).initProduct(p.name, people);
+      ref.read(unitsProvider.notifier).initProduct(p.name, people);
+      ref.read(divideEnabledProvider.notifier).setFlag(p.name, false);
+      ref.read(useUnitsProvider.notifier).setFlag(p.name, false);
     }
   }
 
   void go() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => ResultScreen(
-          people: widget.people,
-          products: widget.products,
-          selected: selected,
-          units: units,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => const ResultScreen()),
     );
   }
 
-  double getTotal(Product p) =>
-      p.price * p.quantity;
+  double getTotal(Product p) => p.price * p.quantity;
 
   @override
   Widget build(BuildContext context) {
+    final people = ref.watch(peopleProvider);
+    final products = ref.watch(productsProvider);
+    final selected = ref.watch(selectedProvider);
+    final units = ref.watch(unitsProvider);
+    final divideFlags = ref.watch(divideEnabledProvider);
+    final useUnitsFlags = ref.watch(useUnitsProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text("Atribuir")),
 
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ...widget.products.map((p) {
+          ...products.map((p) {
+            final productSelected = selected[p.name] ?? {};
+            final productUnits = units[p.name] ?? {};
+            final divideEnabled = divideFlags[p.name] ?? false;
+            final useUnits = useUnitsFlags[p.name] ?? false;
+
             return Card(
               elevation: 4,
               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -106,106 +94,100 @@ class _AssignScreenState extends State<AssignScreen> {
                     child: Text('Total: €${getTotal(p).toStringAsFixed(2)}'),
                   ),
 
-                children: [
-                  // switch para ativar/desativar a funcionalidade de divisão para este produto
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Ativar divisão para este produto'),
-                    value: divideEnabled[p.name] ?? false,
-                    onChanged: (v) {
-                      setState(() {
-                        divideEnabled[p.name] = v;
+                  children: [
+                    // switch para ativar/desativar a funcionalidade de divisão para este produto
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Ativar divisão para este produto'),
+                      value: divideEnabled,
+                      onChanged: (v) {
+                        ref.read(divideEnabledProvider.notifier).setFlag(p.name, v);
                         if (!v) {
                           // reset selections/units
-                          units[p.name] = {for (var person in widget.people) person.id: 0};
-                          selected[p.name] = {for (var person in widget.people) person.id: false};
-                          useUnits[p.name] = false;
+                          ref.read(unitsProvider.notifier).resetProduct(p.name, people);
+                          ref.read(selectedProvider.notifier).resetProduct(p.name, people);
+                          ref.read(useUnitsProvider.notifier).setFlag(p.name, false);
                         }
-                      });
-                    },
-                  ),
-
-                  if (divideEnabled[p.name] ?? false) ...[
-                    // escolha do modo de atribuição (Seleção ou Unidades)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('Seleção'),
-                            selected: !(useUnits[p.name] ?? false),
-                            selectedColor: Theme.of(context).colorScheme.primary.withAlpha((0.12 * 255).round()),
-                            onSelected: (s) => setState(() => useUnits[p.name] = false),
-                          ),
-                          const SizedBox(width: 8),
-                          ChoiceChip(
-                            label: const Text('Unidades'),
-                            selected: useUnits[p.name] ?? false,
-                            selectedColor: Theme.of(context).colorScheme.primary.withAlpha((0.12 * 255).round()),
-                            onSelected: (s) => setState(() => useUnits[p.name] = true),
-                          ),
-                        ],
-                      ),
+                      },
                     ),
 
-                    ...widget.people.map((person) {
-                      if (useUnits[p.name] ?? false) {
-                        // mostra selector de unidades (0..p.quantity)
-                        final current = units[p.name]![person.id] ?? 0;
-                        return ListTile(
-                          title: Text(person.name),
-                          trailing: DropdownButton<int>(
-                            value: current,
-                            items: List.generate(
-                              p.quantity + 1,
-                              (i) => DropdownMenuItem(value: i, child: Text('$i')),
+                    if (divideEnabled) ...[
+                      // escolha do modo de atribuição (Seleção ou Unidades)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ChoiceChip(
+                              label: const Text('Seleção'),
+                              selected: !useUnits,
+                              selectedColor: Theme.of(context).colorScheme.primary.withAlpha((0.12 * 255).round()),
+                              onSelected: (s) => ref.read(useUnitsProvider.notifier).setFlag(p.name, false),
                             ),
-                            onChanged: (value) {
-                              if (value == null) return;
-                              final sumOther = units[p.name]!.entries
-                                  .where((e) => e.key != person.id)
-                                  .map((e) => e.value)
-                                  .fold<int>(0, (a, b) => a + b);
-                              if (sumOther + value > p.quantity) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Não é possível atribuir mais de ${p.quantity} unidades para este produto.')),
-                                );
-                                return;
-                              }
-                              setState(() {
-                                units[p.name]![person.id] = value;
-                                // atualizar selected para compatibilidade: selecionado se unidades>0
-                                selected[p.name]![person.id] = value > 0;
-                              });
-                            },
-                          ),
-                        );
-                      }
+                            const SizedBox(width: 8),
+                            ChoiceChip(
+                              label: const Text('Unidades'),
+                              selected: useUnits,
+                              selectedColor: Theme.of(context).colorScheme.primary.withAlpha((0.12 * 255).round()),
+                              onSelected: (s) => ref.read(useUnitsProvider.notifier).setFlag(p.name, true),
+                            ),
+                          ],
+                        ),
+                      ),
 
-                      return CheckboxListTile(
-                        title: Text(person.name),
-                        value: selected[p.name]![person.id],
-                        onChanged: (v) {
-                          setState(() {
-                            selected[p.name]![person.id] = v!;
+                      ...people.map((person) {
+                        if (useUnits) {
+                          // mostra selector de unidades (0..p.quantity)
+                          final current = productUnits[person.id] ?? 0;
+                          return ListTile(
+                            title: Text(person.name),
+                            trailing: DropdownButton<int>(
+                              value: current,
+                              items: List.generate(
+                                p.quantity + 1,
+                                (i) => DropdownMenuItem(value: i, child: Text('$i')),
+                              ),
+                              onChanged: (value) {
+                                if (value == null) return;
+                                final sumOther = (productUnits.entries)
+                                    .where((e) => e.key != person.id)
+                                    .map((e) => e.value)
+                                    .fold<int>(0, (a, b) => a + b);
+                                if (sumOther + value > p.quantity) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Não é possível atribuir mais de ${p.quantity} unidades para este produto.')),
+                                  );
+                                  return;
+                                }
+                                ref.read(unitsProvider.notifier).setUnits(p.name, person.id, value);
+                                // atualizar selected para compatibilidade: selecionado se unidades>0
+                                ref.read(selectedProvider.notifier).setSelection(p.name, person.id, value > 0);
+                              },
+                            ),
+                          );
+                        }
+
+                        return CheckboxListTile(
+                          title: Text(person.name),
+                          value: productSelected[person.id] ?? false,
+                          onChanged: (v) {
+                            final newVal = v ?? false;
+                            ref.read(selectedProvider.notifier).setSelection(p.name, person.id, newVal);
                             // manter unidades coerentes
-                            if (!v) {
-                              units[p.name]![person.id] = 0;
-                            } else if (units[p.name]![person.id] == 0) {
-                              units[p.name]![person.id] = 1;
+                            if (!newVal) {
+                              ref.read(unitsProvider.notifier).setUnits(p.name, person.id, 0);
+                            } else if ((productUnits[person.id] ?? 0) == 0) {
+                              ref.read(unitsProvider.notifier).setUnits(p.name, person.id, 1);
                             }
-                          });
-                        },
-                      );
-                    }),
+                          },
+                        );
+                      }),
+                    ],
                   ],
-                ],
+                ),
               ),
-            )
             );
-          }
-          ),
+          }),
         ],
       ),
 
