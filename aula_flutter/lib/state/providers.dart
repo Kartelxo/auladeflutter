@@ -45,6 +45,17 @@ class SelectedNotifier extends StateNotifier<Map<String, Map<String, bool>>> {
     };
   }
 
+  /// Add a person id to all existing product maps (default false)
+  void addPerson(String personId) {
+    final newState = <String, Map<String, bool>>{};
+    for (final entry in state.entries) {
+      final m = Map<String, bool>.from(entry.value);
+      m[personId] = false;
+      newState[entry.key] = m;
+    }
+    state = {...state, ...newState};
+  }
+
   void resetProduct(String productName, List<Person> people) {
     state = {
       ...state,
@@ -70,6 +81,17 @@ class UnitsNotifier extends StateNotifier<Map<String, Map<String, int>>> {
       ...state,
       productName: {for (var p in people) p.id: 0},
     };
+  }
+
+  /// Add a person id to all existing product maps (default 0)
+  void addPerson(String personId) {
+    final newState = <String, Map<String, int>>{};
+    for (final entry in state.entries) {
+      final m = Map<String, int>.from(entry.value);
+      m[personId] = 0;
+      newState[entry.key] = m;
+    }
+    state = {...state, ...newState};
   }
 
   void resetProduct(String productName, List<Person> people) {

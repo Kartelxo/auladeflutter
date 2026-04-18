@@ -15,15 +15,18 @@ class _AssignScreenState extends ConsumerState<AssignScreen> {
   @override
   void initState() {
     super.initState();
-    // initialize providers for current products & people
-    final people = ref.read(peopleProvider);
-    final products = ref.read(productsProvider);
-    for (var p in products) {
-      ref.read(selectedProvider.notifier).initProduct(p.name, people);
-      ref.read(unitsProvider.notifier).initProduct(p.name, people);
-      ref.read(divideEnabledProvider.notifier).setFlag(p.name, false);
-      ref.read(useUnitsProvider.notifier).setFlag(p.name, false);
-    }
+    // Defer provider modifications until after the widget tree finished
+    // building. Using `Future(...)` schedules this after build/initState.
+    Future(() {
+      final people = ref.read(peopleProvider);
+      final products = ref.read(productsProvider);
+      for (var p in products) {
+        ref.read(selectedProvider.notifier).initProduct(p.name, people);
+        ref.read(unitsProvider.notifier).initProduct(p.name, people);
+        ref.read(divideEnabledProvider.notifier).setFlag(p.name, false);
+        ref.read(useUnitsProvider.notifier).setFlag(p.name, false);
+      }
+    });
   }
 
   void go() {

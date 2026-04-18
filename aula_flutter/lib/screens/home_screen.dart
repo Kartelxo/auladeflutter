@@ -33,6 +33,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final p = Person(id: DateTime.now().toString(), name: name);
     ref.read(peopleProvider.notifier).add(p);
 
+  // ensure selection/units maps include this new person
+  ref.read(selectedProvider.notifier).addPerson(p.id);
+  ref.read(unitsProvider.notifier).addPerson(p.id);
+
     nameC.clear();
     ToastHelper.show(context, "Pessoa adicionada");
   }
@@ -54,6 +58,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final prod = Product(name: name, price: price, quantity: qty);
     ref.read(productsProvider.notifier).add(prod);
+
+  // initialize selected/units for this new product with existing people
+  final people = ref.read(peopleProvider);
+  ref.read(selectedProvider.notifier).initProduct(prod.name, people);
+  ref.read(unitsProvider.notifier).initProduct(prod.name, people);
 
     prodC.clear();
     priceC.clear();
